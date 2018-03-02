@@ -8,7 +8,7 @@
 
 import Foundation
 
-class Employee: NSObject {
+@objc class Employee: NSObject {
     @objc dynamic var name: String? = "New Employee"
     @objc dynamic var raise: Float = 0.05
 }
