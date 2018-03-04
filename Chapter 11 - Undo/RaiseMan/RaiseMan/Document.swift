@@ -10,10 +10,10 @@ import Cocoa
 
 private var KVOContext: Int = 0
 
-class Document: NSDocument, NSWindowDelegate {
+@objc class Document: NSDocument, NSWindowDelegate {
     @IBOutlet weak var tableView: NSTableView!
     @IBOutlet weak var arrayController: NSArrayController!
-    var employees: [Employee] = [] {
+    @objc dynamic var employees: [Employee] = [] {
         willSet {
             for employee in employees {
                 stopObservingEmployee(employee)
@@ -33,11 +33,11 @@ class Document: NSDocument, NSWindowDelegate {
         
         let endedEditing = window.makeFirstResponder(window)
         if !endedEditing {
-            print("Unable to end editing")
+            Swift.print("Unable to end editing")
             return
         }
         
-        let undo: NSUndoManager = undoManager!
+        let undo: UndoManager = undoManager!
         
         // Has an edit occurred already in this event?
         if undo.groupingLevel > 0 {
@@ -60,73 +60,79 @@ class Document: NSDocument, NSWindowDelegate {
         let sortedEmployees = arrayController.arrangedObjects as! [Employee]
         
         // Find the object just added
-        let row = sortedEmployees.indexOf(employee)!
+        let row = sortedEmployees.index(of: employee)!
         
         // Begin the edit in the first column
-        print("starting edit of \(employee) in row \(row)")
-        tableView.editColumn(0, row: row, withEvent: nil, select: true)
+        Swift.print("starting edit of \(employee) in row \(row)")
+        tableView.editColumn(0, row: row, with: nil, select: true)
     }
     
     // MARK: - Accessors
     
-    func insertObject(employee: Employee, inEmployeesAtIndex index: Int) {
-        print("adding \(employee) to the employees array")
+    func insertObject(_ employee: Employee, inEmployeesAtIndex index: Int) {
+        Swift.print("adding \(employee) to the employees array")
         
         // Add the inverse of this operation to the undo stack
-        let undo: NSUndoManager = undoManager!
-        undo.prepareWithInvocationTarget(self).removeObjectFromEmployeesAtIndex(employees.count)
-        if !undo.undoing {
+        if let undo = undoManager {
+            undo.registerUndo(withTarget: self) { target in
+                target.removeObject(fromEmployeesAtIndex: index)
+            }
             undo.setActionName("Add Person")
         }
         
-        employees.append(employee)
+        employees.insert(employee, at: index)
     }
     
-    func removeObjectFromEmployeesAtIndex(index: Int) {
-        let employee: Employee = employees[index]
+    func removeObject(fromEmployeesAtIndex index: Int) {
+        let employee = employees[index]
+        Swift.print("removing \(employee) from the employees array")
         
-        print("removing \(employee) from the employees array")
-        
-        // Add the inverse of this operation to the undo stack 
-        let undo: NSUndoManager = undoManager!
-        undo.prepareWithInvocationTarget(self).insertObject(employee, inEmployeesAtIndex: index)
-        if !undo.undoing {
+        // Add the inverse of this operation to the undo stack
+        if let undo = undoManager {
+            undo.registerUndo(withTarget: self) { target in
+                target.insertObject(employee, inEmployeesAtIndex: index)
+            }
             undo.setActionName("Remove Person")
         }
         
-        // Remove the employee from the array
-        employees.removeAtIndex(index)
+        employees.remove(at: index)
     }
     
     // MARK: - Key Value Observing
     
-    func startObservingEmployee(employee: Employee) {
-        employee.addObserver(self, forKeyPath: "name", options: .Old, context: &KVOContext)
-        employee.addObserver(self, forKeyPath: "raise", options: .Old, context: &KVOContext)
+    func startObservingEmployee(_ employee: Employee) {
+        employee.addObserver(self, forKeyPath: "name", options: .old, context: &KVOContext)
+        employee.addObserver(self, forKeyPath: "raise", options: .old, context: &KVOContext)
     }
     
-    func stopObservingEmployee(employee: Employee) {
+    func stopObservingEmployee(_ employee: Employee) {
         employee.removeObserver(self, forKeyPath: "name", context: &KVOContext)
         employee.removeObserver(self, forKeyPath: "raise", context: &KVOContext)
     }
     
-    override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
-        guard context == &KVOContext else {
-            // If the context does not match, this message
-            // must be intended for our superclass.
-            super.observeValueForKeyPath(keyPath, ofObject: object, change: change, context: context)
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        
+        if context != &KVOContext {
+            // if the context does not match, this message
+            // must be intended for our superclass
+            
+            super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
             return
         }
         
-        if let keyPath = keyPath, object = object, change = change {
-            var oldValue: AnyObject? = change[NSKeyValueChangeOldKey]
-            if oldValue is NSNull {
-                oldValue = nil
+        
+        var oldvalue = change?[NSKeyValueChangeKey.oldKey] as AnyObject?
+        if oldvalue is NSNull {
+            oldvalue = nil
+        }
+        
+        
+        // Add the inverse of this operation to the undo stack
+        if let undo = undoManager {
+            undo.registerUndo(withTarget: self) { target in
+                target.setValue(oldvalue, forKeyPath: keyPath!)
             }
-            
-            let undo: NSUndoManager = undoManager!
-            print("oldValue=\(oldValue)")
-            undo.prepareWithInvocationTarget(object).setValue(oldValue, forKeyPath: keyPath)
+            undo.setActionName("Add Person")
         }
     }
     
@@ -140,34 +146,39 @@ class Document: NSDocument, NSWindowDelegate {
 
     // MARK - NSDocument Overrides
     
-    override func windowControllerDidLoadNib(aController: NSWindowController) {
-        super.windowControllerDidLoadNib(aController)
-                                    
+    override func windowControllerDidLoadNib(_ windowController: NSWindowController) {
         // Add any code here that needs to be executed once the windowController has loaded the document's window.
+        super.windowControllerDidLoadNib(windowController)
     }
 
-    override class func autosavesInPlace() -> Bool {
+    class func autosavesInPlace() -> Bool {
         return true
     }
 
-    override var windowNibName: String {
+    override var windowNibName: NSNib.Name? {
         // Returns the nib file name of the document
         // If you need to use a subclass of NSWindowController or if your document supports multiple NSWindowControllers, you should remove this property and override -makeWindowControllers instead.
-        return "Document"
+        return NSNib.Name(rawValue: "Document")
     }
 
-    override func dataOfType(typeName: String?) throws -> NSData {
+    override func data(ofType typeName: String) throws -> Data {
+        // Insert code here to write your document to data of the specified type. If outError != nil, ensure that you create and set an appropriate error when returning nil.
+        // You can also choose to override fileWrapperOfType:error:, writeToURL:ofType:error:, or writeToURL:ofType:forSaveOperation:originalContentsURL:error: instead.
         throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
     }
 
-    override func readFromData(data: NSData?, ofType typeName: String?) throws {
+    override func read(from data: Data, ofType typeName: String) throws {
+        // Insert code here to read your document from the given data of the specified type. If outError != nil, ensure that you create and set an appropriate error when returning false.
+        // You can also choose to override readFromFileWrapper:ofType:error: or readFromURL:ofType:error: instead.
+        // If you override either of these, you should also override -isEntireFileLoaded to return NO if the contents are lazily loaded.
         throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
     }
 
     // MARK: - NSWindowDelegate
     
-    func windowWillClose(notification: NSNotification) {
+    func windowWillClose(_ notification: Notification) {
         employees = []
     }
+    
 }
 
