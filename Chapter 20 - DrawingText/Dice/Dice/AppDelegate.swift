@@ -8,20 +8,21 @@
 
 import Cocoa
 
+@NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
-                            
-	var mainWindowController: MainWindowController?
-
-	func applicationDidFinishLaunching(aNotification: NSNotification) {
-		// Insert code here to initialize your application
-		mainWindowController = MainWindowController()
-		mainWindowController!.showWindow(self)
-	}
-
-	func applicationWillTerminate(aNotification: NSNotification) {
-		// Insert code here to tear down your application
-	}
-
-
+    
+    var mainWindowController: MainWindowController?
+    
+    func applicationDidFinishLaunching(_ Notification: Notification) {
+        // Insert code here to initialize your application
+        mainWindowController = MainWindowController()
+        mainWindowController!.showWindow(self)
+    }
+    
+    func applicationWillTerminate(_ Notification: Notification) {
+        // Insert code here to tear down your application
+    }
+    
+    
 }
 
