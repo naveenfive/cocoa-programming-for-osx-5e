@@ -14,12 +14,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var windowControllers: [ChatWindowController] = []
 
 
-    func applicationDidFinishLaunching(aNotification: NSNotification) {
+    func applicationDidFinishLaunching(_ Notification: Notification) {
         addWindowController()
     }
 
     
-    func applicationWillTerminate(aNotification: NSNotification) {
+    func applicationWillTerminate(_ Notification: Notification) {
         // Insert code here to tear down your application
     }
     
