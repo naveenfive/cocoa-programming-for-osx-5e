@@ -10,8 +10,8 @@ import Cocoa
 
 class MainWindowController: NSWindowController, NSSpeechSynthesizerDelegate, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate {
 
-    override var windowNibName: String {
-        return "MainWindowController"
+    override var windowNibName: NSNib.Name {
+        return NSNib.Name(rawValue: "MainWindowController")
     }
     
     
@@ -23,7 +23,7 @@ class MainWindowController: NSWindowController, NSSpeechSynthesizerDelegate, NSW
     let preferenceManager = PreferenceManager()
     let speechSynth: NSSpeechSynthesizer = NSSpeechSynthesizer()
     
-    let voices = NSSpeechSynthesizer.availableVoices()
+    let voices = NSSpeechSynthesizer.availableVoices
     
     var isStarted: Bool = false {
         didSet {
@@ -37,9 +37,9 @@ class MainWindowController: NSWindowController, NSSpeechSynthesizerDelegate, NSW
         updateButtons()
         speechSynth.delegate = self
         let defaultVoice = preferenceManager.activeVoice!
-        if let defaultRow = voices.indexOf(defaultVoice) {
+        if let defaultRow = voices.index(of: NSSpeechSynthesizer.VoiceName(rawValue: defaultVoice)) {
             let indices = NSIndexSet(index: defaultRow)
-            tableView.selectRowIndexes(indices, byExtendingSelection: false)
+            tableView.selectRowIndexes(indices as IndexSet, byExtendingSelection: false)
             tableView.scrollRowToVisible(defaultRow)
         }
         textField.stringValue = preferenceManager.activeText!
@@ -54,7 +54,7 @@ class MainWindowController: NSWindowController, NSSpeechSynthesizerDelegate, NSW
         if string.isEmpty {
             print("string from \(textField) is empty")
         } else {
-            speechSynth.startSpeakingString(string)
+            speechSynth.startSpeaking(string)
             isStarted = true
         }
     }
@@ -68,22 +68,22 @@ class MainWindowController: NSWindowController, NSSpeechSynthesizerDelegate, NSW
     
     func updateButtons() {
         if isStarted {
-            speakButton.enabled = false
-            stopButton.enabled = true
+            speakButton.isEnabled = false
+            stopButton.isEnabled = true
         } else {
-            stopButton.enabled = false
-            speakButton.enabled = true
+            stopButton.isEnabled = false
+            speakButton.isEnabled = true
         }
     }
     
     func voiceNameForIdentifier(identifier: String) -> String? {
-        let attributes = NSSpeechSynthesizer.attributesForVoice(identifier)
-        return attributes[NSVoiceName] as? String
+        let attributes = NSSpeechSynthesizer.attributes(forVoice: NSSpeechSynthesizer.VoiceName(rawValue: identifier))
+        return attributes[NSSpeechSynthesizer.VoiceAttributeKey.name] as? String
     }
 
     
     // MARK: NSSpeechSynthesizerDelegate
-    func speechSynthesizer(sender: NSSpeechSynthesizer, didFinishSpeaking finishedSpeaking: Bool) {
+    func speechSynthesizer(_ sender: NSSpeechSynthesizer, didFinishSpeaking finishedSpeaking: Bool) {
         isStarted = false
         print("finishedSpeaking=\(finishedSpeaking)")
     }
@@ -96,35 +96,35 @@ class MainWindowController: NSWindowController, NSSpeechSynthesizerDelegate, NSW
     
 
     // MARK: NSTableViewDataSource
-    func numberOfRowsInTableView(tableView: NSTableView) -> Int {
+    func numberOfRows(in tableView: NSTableView) -> Int {
         return voices.count
     }
     
  
-    func tableView(tableView: NSTableView, objectValueForTableColumn tableColumn: NSTableColumn?, row: Int) -> AnyObject? {
+    func tableView(_ tableView: NSTableView, objectValueFor tableColumn: NSTableColumn?, row: Int) -> Any? {
         let voice = voices[row]
-        let voiceName = voiceNameForIdentifier(voice)
+        let voiceName = voiceNameForIdentifier(identifier: voice.rawValue)
         return voiceName
     }
     
     
     // MARK: NSTableViewDelegate
-    func tableViewSelectionDidChange(notification: NSNotification) {
+    func tableViewSelectionDidChange(_ notification: Notification) {
         let row = tableView.selectedRow
-            
+        
         // Set the voice back to the default if the user has deselected all rows
         if row == -1 {
             speechSynth.setVoice(nil)
-        return
+            return
         }
         let voice = voices[row]
         speechSynth.setVoice(voice)
-        preferenceManager.activeVoice = voice
+        preferenceManager.activeVoice = voice.rawValue
     }
     
     
     // MARK: - NSTextFieldDelegate
-    override func controlTextDidChange(obj: NSNotification) {
+    override func controlTextDidChange(_ obj: Notification) {
         preferenceManager.activeText = textField.stringValue
     }
     
