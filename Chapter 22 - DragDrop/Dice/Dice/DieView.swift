@@ -41,7 +41,7 @@ class DieView: NSView, NSDraggingSource {
 	}
 	
 	func commonInit() {
-		self.registerForDraggedTypes([NSPasteboardTypeString])
+        self.registerForDraggedTypes([NSPasteboard.PasteboardType.string])
 	}
 
 	
@@ -53,17 +53,17 @@ class DieView: NSView, NSDraggingSource {
 		return NSSize(width: 20, height: 20)
 	}
 
-	override func drawRect(dirtyRect: NSRect) {
-		let backgroundColor = NSColor.lightGrayColor()
-		backgroundColor.set()
-		NSBezierPath.fillRect(bounds)
+	override func draw(_ dirtyRect: NSRect) {
+        let backgroundColor = NSColor.lightGray
+        backgroundColor.set()
+        NSBezierPath.fill(bounds)
 		
 		if highlightForDragging {
-			let gradient = NSGradient(startingColor: NSColor.whiteColor(), endingColor: backgroundColor)!
-			gradient.drawInRect(bounds, relativeCenterPosition: NSZeroPoint)
+            let gradient = NSGradient(starting: NSColor.white, ending: backgroundColor)!
+            gradient.draw(in: bounds, relativeCenterPosition: NSZeroPoint)
 		}
 		else {
-			drawDieWithSize(bounds.size)
+            drawDieWithSize(size: bounds.size)
 		}
 	}
 	
@@ -80,7 +80,7 @@ class DieView: NSView, NSDraggingSource {
 	
 	func drawDieWithSize(size: CGSize) {
 		if let intValue = intValue {
-			let (edgeLength, dieFrame) = metricsForSize(size)
+            let (edgeLength, dieFrame) = metricsForSize(size: size)
 			let cornerRadius:CGFloat = edgeLength/5.0
 			let dotRadius = edgeLength/12.0
 			let dotFrame = dieFrame.insetBy(dx: dotRadius * 2.5, dy: dotRadius * 2.5)
@@ -92,63 +92,64 @@ class DieView: NSView, NSDraggingSource {
 			shadow.shadowBlurRadius = (pressed ? edgeLength/100 : edgeLength/20)
 			shadow.set()
 			
-			NSColor.whiteColor().set()
+			NSColor.white.set()
 			NSBezierPath(roundedRect: dieFrame, xRadius: cornerRadius, yRadius: cornerRadius).fill()
 			
 			NSGraphicsContext.restoreGraphicsState()
 			
-			NSColor.blackColor().set()
+			NSColor.black.set()
 			
-			func drawDot(u: CGFloat, _ v: CGFloat) {
-				let dotOrigin = CGPoint(x: dotFrame.minX + dotFrame.width * u,
-										y: dotFrame.minY + dotFrame.height * v)
-				let dotRect = CGRect(origin: dotOrigin, size: CGSizeZero)
-					.insetBy(dx: -dotRadius, dy: -dotRadius)
-				NSBezierPath(ovalInRect: dotRect).fill()
-			}
-			
-			if (1...6).indexOf(intValue) != nil {
-				// Draw Dots
-				if [1, 3, 5].indexOf(intValue) != nil {
-					drawDot(0.5, 0.5) // center dot
-				}
-				if (2...6).indexOf(intValue) != nil {
-					drawDot(0, 1) // upper left
-					drawDot(1, 0) // lower right
-				}
-				if (4...6).indexOf(intValue) != nil {
-					drawDot(1, 1) // upper right
-					drawDot(0, 0) // lower left
-				}
-				if intValue == 6 {
-					drawDot(0, 0.5) // mid left/right
-					drawDot(1, 0.5)
-				}
-			}
-			else {
-				let paraStyle = NSParagraphStyle.defaultParagraphStyle().mutableCopy() as! NSMutableParagraphStyle
-				paraStyle.alignment = .Center
-				let font = NSFont.systemFontOfSize(edgeLength * 0.6)
-				let attrs = [
-					NSForegroundColorAttributeName: NSColor.blackColor(),
-							   NSFontAttributeName: font,
-					 NSParagraphStyleAttributeName: paraStyle ]
-				let string = "\(intValue)" as NSString
-				string.drawCenteredInRect(dieFrame, attributes: attrs)
-			}
+            func drawDot(_ u: CGFloat, _ v: CGFloat) {
+                let dotOrigin = CGPoint(x: dotFrame.minX + dotFrame.width * u,
+                                        y: dotFrame.minY + dotFrame.height * v)
+                let dotRect = CGRect(origin: dotOrigin, size: CGSize.zero)
+                    .insetBy(dx: -dotRadius, dy: -dotRadius)
+                NSBezierPath(ovalIn: dotRect).fill()
+            }
+            
+            if (1...6).index(of: intValue) != nil {
+                // Draw Dots
+                if [1, 3, 5].index(of: intValue) != nil {
+                    drawDot(0.5, 0.5) // center dot
+                }
+                if (2...6).index(of: intValue) != nil {
+                    drawDot(0, 1) // upper left
+                    drawDot(1, 0) // lower right
+                }
+                if (4...6).index(of: intValue) != nil {
+                    drawDot(1, 1) // upper right
+                    drawDot(0, 0) // lower left
+                }
+                if intValue == 6 {
+                    drawDot(0, 0.5) // mid left/right
+                    drawDot(1, 0.5)
+                }
+            }
+            else {
+                let paraStyle = NSParagraphStyle.default.mutableCopy() as! NSMutableParagraphStyle
+                paraStyle.alignment = .center
+                let font = NSFont.systemFont(ofSize: edgeLength * 0.6)
+                let attrs = [
+                    NSAttributedStringKey.foregroundColor: NSColor.black,
+                    NSAttributedStringKey.font: font,
+                    NSAttributedStringKey.paragraphStyle: paraStyle ]
+                let string = "\(intValue)" as NSString
+                
+                string.drawCenteredInRect(rect: dieFrame, attributes: attrs)
+            }
 		}
 	}
 	
 	@IBAction func savePDF(sender: AnyObject!) {
-		let savePanel = NSSavePanel()
-		savePanel.allowedFileTypes = ["pdf"]
-        savePanel.beginSheetModalForWindow(window!) {
+        let savePanel = NSSavePanel()
+        savePanel.allowedFileTypes = ["pdf"]
+        savePanel.beginSheetModal(for: window!) {
             [unowned savePanel] (result) in
-            if result == NSModalResponseOK {
-                let data = self.dataWithPDFInsideRect(self.bounds)
+            if result == NSApplication.ModalResponse.OK {
+                let data = self.dataWithPDF(inside: self.bounds)
                 do {
-                    try data.writeToURL(savePanel.URL!,
-                        options: NSDataWritingOptions.DataWritingAtomic)
+                    try data.write(to: savePanel.url!,
+                                   options: NSData.WritingOptions.atomic)
                 } catch let error as NSError {
                     let alert = NSAlert(error: error)
                     alert.runModal()
@@ -161,19 +162,20 @@ class DieView: NSView, NSDraggingSource {
 
 	// MARK: - Mouse Events
 	
-	override func mouseDown(theEvent: NSEvent) {
+    override func mouseDown(with event: NSEvent) {
 		Swift.print("mouseDown")
-		mouseDownEvent = theEvent
+		mouseDownEvent = event
 		
-		let dieFrame = metricsForSize(bounds.size).dieFrame
-		let pointInView = convertPoint(theEvent.locationInWindow, fromView: nil)
+        let dieFrame = metricsForSize(size: bounds.size).dieFrame
+        let pointInView = convert(event.locationInWindow, from: nil)
 		pressed = dieFrame.contains(pointInView)
 	}
-	override func mouseDragged(theEvent: NSEvent) {
-		Swift.print("mouseDragged location: \(theEvent.locationInWindow)")
+    
+    override func mouseDragged(with event: NSEvent) {
+		Swift.print("mouseDragged location: \(event.locationInWindow)")
 
 		let downPoint = mouseDownEvent!.locationInWindow
-		let dragPoint = theEvent.locationInWindow
+		let dragPoint = event.locationInWindow
 		
 		let distanceDragged = hypot(downPoint.x - dragPoint.x, downPoint.y - dragPoint.y)
 		if distanceDragged < 3 {
@@ -185,142 +187,143 @@ class DieView: NSView, NSDraggingSource {
 		if let intValue = intValue {
 			let imageSize = bounds.size
 			let image = NSImage(size: imageSize, flipped: false) { (imageBounds) in
-				self.drawDieWithSize(imageBounds.size)
+                self.drawDieWithSize(size: imageBounds.size)
 				return true
 			}
 			
-			let draggingFrameOrigin = convertPoint(downPoint, fromView: nil)
+            let draggingFrameOrigin = convert(downPoint, from: nil)
 			let draggingFrame = NSRect(origin: draggingFrameOrigin, size: imageSize)
                     .offsetBy(dx: -imageSize.width/2, dy: -imageSize.height/2)
 			
-			let item = NSDraggingItem(pasteboardWriter: "\(intValue)")
+            let item = NSDraggingItem(pasteboardWriter: "\(intValue)" as NSPasteboardWriting)
 			item.draggingFrame = draggingFrame
 			item.imageComponentsProvider = {
-				let component = NSDraggingImageComponent(key: NSDraggingImageComponentIconKey)
+                let component = NSDraggingImageComponent(key: NSDraggingItem.ImageComponentKey.icon)
 				component.contents = image
 				component.frame = NSRect(origin: NSPoint(), size: imageSize)
 				return [component]
 			}
 			
-			beginDraggingSessionWithItems([item], event:mouseDownEvent!, source: self)
+            beginDraggingSession(with: [item], event:mouseDownEvent!, source: self)
 		}
 	}
-	override func mouseUp(theEvent: NSEvent) {
-		Swift.print("mouseUp clickCount: \(theEvent.clickCount)")
-		if theEvent.clickCount == 2 && pressed {
-			randomize()
-		}
-		pressed = false
-	}
+    
+    override func mouseUp(with event: NSEvent) {
+        Swift.print("mouseUp clickCount: \(event.clickCount)")
+        if event.clickCount == 2 && pressed {
+            randomize()
+        }
+        pressed = false
+    }
 	
 	// MARK: - Drag Source
 
-	func draggingSession(session: NSDraggingSession, sourceOperationMaskForDraggingContext context: NSDraggingContext) -> NSDragOperation {
-		return [.Copy, .Delete]
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        return [.copy, .delete]
 	}
 	
-	func draggingSession(session: NSDraggingSession, endedAtPoint screenPoint: NSPoint, operation: NSDragOperation) {
-		if operation == .Delete {
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        if operation == .delete {
 			intValue = nil
 		}
 	}
 
 	// MARK: - Drag Destination
 
-	override func draggingEntered(sender: NSDraggingInfo) -> NSDragOperation {
-		if sender.draggingSource() === self {
-			return .None
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+		if sender.draggingSource() is DieView {
+			return []
 		}
 		highlightForDragging = true
 		return sender.draggingSourceOperationMask()
 	}
 
-	override func draggingExited(sender: NSDraggingInfo?) {
+    override func draggingExited(_ sender: NSDraggingInfo?) {
 		highlightForDragging = false
 	}
 	
-	override func prepareForDragOperation(sender: NSDraggingInfo) -> Bool {
+    override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
 		return true
 	}
 	
-	override func performDragOperation(sender: NSDraggingInfo) -> Bool {
-		let ok = readFromPasteboard(sender.draggingPasteboard())
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let ok = readFromPasteboard(pasteboard: sender.draggingPasteboard())
 		return ok
 	}
 	
-	override func concludeDragOperation(sender: NSDraggingInfo?) {
+    override func concludeDragOperation(_ sender: NSDraggingInfo?) {
 		highlightForDragging = false
 	}
 	
 
-	// MARK: - First Responder
-	
-	override var acceptsFirstResponder: Bool { return true  }
-	
-	override func becomeFirstResponder() -> Bool {
-		return true
-	}
-	
-	override func resignFirstResponder() -> Bool {
-		return true
-	}
-	
-	override func drawFocusRingMask() {
-		// Try this:
-		//drawDieWithSize(bounds.size)
-		NSBezierPath.fillRect(bounds)
-	}
-	override var focusRingMaskBounds: NSRect {
-		return bounds
-	}
-	
-	// MARK: Keyboard Events
-	
-	override func keyDown(theEvent: NSEvent) {
-		interpretKeyEvents([theEvent])
-	}
-	
-	override func insertText(insertString: AnyObject) {
-		let text = insertString as! String
-		if let number = Int(text) {
-			intValue = number
-		}
-	}
-
-	override func insertTab(sender: AnyObject?) {
-		window?.selectNextKeyView(sender)
-	}
-	override func insertBacktab(sender: AnyObject?) {
-		window?.selectPreviousKeyView(sender)
-	}
-
-	// MARK: - Pasteboard
-	
-	func writeToPasteboard(pasteboard: NSPasteboard) {
-		if let intValue = intValue {
-			pasteboard.clearContents()
-			pasteboard.writeObjects(["\(intValue)"])
-		}
-	}
-	
-	func readFromPasteboard(pasteboard: NSPasteboard) -> Bool {
-		let objects = pasteboard.readObjectsForClasses([NSString.self], options: [:]) as! [String]
-		if let str = objects.first {
-			intValue = Int(str)
-			return true
-		}
-		return false
-	}
+    override var acceptsFirstResponder: Bool { return true  }
+    
+    override func becomeFirstResponder() -> Bool {
+        return true
+    }
+    
+    override func resignFirstResponder() -> Bool {
+        return true
+    }
+    
+    override func drawFocusRingMask() {
+        // Try this:
+        //drawDieWithSize(bounds.size)
+        NSBezierPath.fill(bounds)
+    }
+    override var focusRingMaskBounds: NSRect {
+        return bounds
+    }
+    
+    // MARK: Keyboard Events
+    
+    override func keyDown(with event: NSEvent) {
+        interpretKeyEvents([event])
+    }
+    
+    override func insertText(_ insertString: Any) {
+        let text = insertString as! String
+        if let number = Int(text) {
+            intValue = number
+        }
+    }
+    
+    override func insertTab(_ sender: Any?) {
+        window?.selectNextKeyView(sender)
+    }
+    
+    override func insertBacktab(_ sender: Any?) {
+        window?.selectPreviousKeyView(sender)
+    }
+    
+    // MARK: - Pasteboard
+    
+    func writeToPasteboard(pasteboard: NSPasteboard) {
+        if let intValue = intValue {
+            pasteboard.clearContents()
+            pasteboard.writeObjects(["\(intValue)" as NSPasteboardWriting])
+        }
+    }
+    
+    func readFromPasteboard(pasteboard: NSPasteboard) -> Bool {
+        let objects = pasteboard.readObjects(forClasses: [NSString.self], options: [:]) as! [String]
+        if let str = objects.first {
+            intValue = Int(str)
+            return true
+        }
+        return false
+    }
 	
 	@IBAction func cut(sender: AnyObject?) {
-		writeToPasteboard(NSPasteboard.generalPasteboard())
-		intValue = nil
+        writeToPasteboard(pasteboard: NSPasteboard.general)
+        intValue = nil
 	}
 	@IBAction func copy(sender: AnyObject?) {
-		writeToPasteboard(NSPasteboard.generalPasteboard())
+        writeToPasteboard(pasteboard: NSPasteboard.general)
+
 	}
 	@IBAction func paste(sender: AnyObject?) {
-		readFromPasteboard(NSPasteboard.generalPasteboard())
+		        readFromPasteboard(pasteboard: NSPasteboard.general)
 	}
 
 }
