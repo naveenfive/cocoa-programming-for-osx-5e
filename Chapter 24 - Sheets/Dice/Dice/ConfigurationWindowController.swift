@@ -25,24 +25,24 @@ class ConfigurationWindowController: NSWindowController {
         }
     }
     
-    private dynamic var color: NSColor = NSColor.whiteColor()
-    private dynamic var rolls: Int = 10
+    @objc private dynamic var color: NSColor = NSColor.white
+    @objc private dynamic var rolls: Int = 10
     
-    override var windowNibName: String {
+    override var windowNibName: NSNib.Name? {
         get {
-            return "ConfigurationWindowController"
+            return NSNib.Name(rawValue: "ConfigurationWindowController")
         }
     }
     
     @IBAction func okayButtonClicked(button: NSButton) {
-        dismissWithModalResponse(NSModalResponseOK)
+        dismissWithModalResponse(response: NSApplication.ModalResponse.OK)
     }
     
     @IBAction func cancelButtonClicked(button: NSButton) {
-        dismissWithModalResponse(NSModalResponseCancel)
+        dismissWithModalResponse(response: NSApplication.ModalResponse.cancel)
     }
     
-    func dismissWithModalResponse(response: NSModalResponse) {
+    func dismissWithModalResponse(response: NSApplication.ModalResponse) {
         window!.sheetParent!.endSheet(window!, returnCode: response)
     }
     
